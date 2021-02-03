@@ -7,6 +7,10 @@ multi-bleu.perl
 *.sublime-*
 .DS_Store
 data/
+models/
+slurm-*
+*.txt
+!requirements.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
