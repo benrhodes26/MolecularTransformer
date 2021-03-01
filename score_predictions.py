@@ -5,7 +5,7 @@ from __future__ import division, unicode_literals
 import argparse
 from rdkit import Chem
 import pandas as pd
-import onmt.opts
+from utils import ds2sm,sf2sm
 
 def canonicalize_smiles(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -22,19 +22,45 @@ def get_rank(row, base, max_rank):
 
 def main(opt):
     with open(opt.targets, 'r') as f:
-        targets = [''.join(line.strip().split(' ')) for line in f.readlines()]
+        if opt.mol_format == "smiles":
+            targets = [''.join(line.strip().split(' ')) for line in f.readlines()]
+        elif opt.mol_format == "deepsmiles":
+            targets = [canonicalize_smiles(ds2sm(''.join(line.strip().split(' ')))) for line in f.readlines()]
+        elif opt.mol_format == "selfies":
+            targets = [canonicalize_smiles(sf2sm(line)) for line in f.readlines()]
 
     predictions = [[] for i in range(opt.beam_size)]
 
     test_df = pd.DataFrame(targets)
+    print(test_df.shape)
     test_df.columns = ['target']
     total = len(test_df)
 
     with open(opt.predictions, 'r') as f:
-        for i, line in enumerate(f.readlines()):
-            predictions[i % opt.beam_size].append(''.join(line.strip().split(' ')))
+        # for non-smiles outputs, if conversion fails
+        # ignore (just predict empty string)
+        if opt.mol_format == "smiles":
+            for i, line in enumerate(f.readlines()):
+                pred_smile = ''.join(line.strip().split(' '))
+                predictions[i % opt.beam_size].append(pred_smile)
+        elif opt.mol_format == "deepsmiles":
+            for i, line in enumerate(f.readlines()):
+                try:
+                    pred_smile = ds2sm(''.join(line.strip().split(' ')))
+                except:
+                    pred_smile=""
+                predictions[i % opt.beam_size].append(pred_smile)
+        elif opt.mol_format == "selfies":
+            for i, line in enumerate(f.readlines()):
+                try:
+                    pred_smile = sf2sm(line)
+                except:
+                    pred_smile = ""
+                predictions[i % opt.beam_size].append(pred_smile)
 
+    print(len(predictions))
     for i, preds in enumerate(predictions):
+        print(len(preds))
         test_df['prediction_{}'.format(i + 1)] = preds
         test_df['canonical_prediction_{}'.format(i + 1)] = test_df['prediction_{}'.format(i + 1)].apply(
             lambda x: canonicalize_smiles(x))
@@ -58,7 +84,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='score_predictions.py',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    onmt.opts.add_md_help_argument(parser)
 
     parser.add_argument('-beam_size', type=int, default=5,
                        help='Beam size')
@@ -68,6 +93,8 @@ if __name__ == "__main__":
                        help="Path to file containing the predictions")
     parser.add_argument('-targets', type=str, default="",
                        help="Path to file containing targets")
+    parser.add_argument('-mol_format', type=str, default="smiles",
+                        help="smiles/deepsmiles or selfies")
 
     opt = parser.parse_args()
     main(opt)
