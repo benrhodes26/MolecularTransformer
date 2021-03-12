@@ -48,7 +48,8 @@ opt=$3
 #echo "Step Top1 Top2 Top3 Top4 Top5" > experiments/${model}/train.csv
 echo "Step Top1 Top2 Top3 Top4 Top5" > experiments/${model}/valid.csv
 # echo "Step Top1 Top2 Top3 Top4 Top5" >> experiments/${model}/test_accuracy.csv
-for ckpt in $(ls experiments/${model}/${model}/${model}_model_*);
+#for ckpt in $(ls experiments/${model}/${model}/${model}_model_*);
+for ckpt in $(find experiments/${model}/${model}/${model}_model_[1-5][05]000.pt);
 do
 	#python translate.py -model experiments/${model}/${model}/$ckpt -src data/${data}/train.src -output experiments/${model}/train.out -batch_size 128 -replace_unk -gpu 1 -max_length 200 -fast -verbose -n_best 5
 	#accs=$(python score_predictions_ds.py -target data/${data}/train.tgt -predictions experiments/${model}/train.out -beam_size 5 -invalid_smiles -$opt | grep Top-[1-5] | sed 's/%//g' | awk '{print $2}')
