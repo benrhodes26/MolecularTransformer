@@ -5,7 +5,8 @@ from __future__ import division, unicode_literals
 import argparse
 from rdkit import Chem
 import pandas as pd
-from utils import ds2sm,sf2sm
+from utils import ds2sm, sf2sm
+
 
 def canonicalize_smiles(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -14,11 +15,13 @@ def canonicalize_smiles(smiles):
     else:
         return ''
 
+
 def get_rank(row, base, max_rank):
     for i in range(1, max_rank+1):
         if row['target'] == row['{}{}'.format(base, i)]:
             return i
     return 0
+
 
 def main(opt):
     with open(opt.targets, 'r') as f:
