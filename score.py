@@ -77,11 +77,13 @@ def main(opt):
             correct += (output_df['rank'] == i).sum()
             invalid_smiles = (output_df['canonical_prediction_{}'.format(i)] == '').sum()
 
-            res_str = 'Top-{}: {:.1f}% || Invalid SMILES {:.2f}%\n'.format(i, correct/total*100, invalid_smiles/total*100)
-            f.write(res_str)
-            print(res_str)
+            result_str = 'Top-{}: {:.1f}% || Invalid SMILES {:.2f}%\n'.format(i, correct/total*100, invalid_smiles/total*100)
+            f.write(result_str)
+            print(result_str)
 
-    output_df.to_csv(opt.outdir + "predictions_targets.csv", sep='\t')
+    output_df.to_csv(opt.outdir + "predictions_targets.csv", sep='\t', encoding='ascii')
+    with open(opt.outdir + "predictions_targets2.csv", 'w') as f:
+        f.write(output_df.__repr__())
 
 
 if __name__ == "__main__":
