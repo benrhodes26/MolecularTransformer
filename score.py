@@ -76,7 +76,10 @@ def main(opt):
         for i in range(1, opt.beam_size+1):
             correct += (output_df['rank'] == i).sum()
             invalid_smiles = (output_df['canonical_prediction_{}'.format(i)] == '').sum()
-            f.write('Top-{}: {:.1f}% || Invalid SMILES {:.2f}%\n'.format(i, correct/total*100, invalid_smiles/total*100))
+
+            res_str = 'Top-{}: {:.1f}% || Invalid SMILES {:.2f}%\n'.format(i, correct/total*100, invalid_smiles/total*100)
+            f.write(res_str)
+            print(res_str)
 
     output_df.to_csv(opt.outdir + "predictions_targets.csv", sep='\t')
 
