@@ -82,6 +82,7 @@ def main(opt):
             print(result_str)
 
     output_df.to_csv(opt.outdir + "predictions_targets.csv", sep='\t', encoding='ascii')
+    output_df.to_string(opt.outdir + "predictions_targets.txt")
     with open(opt.outdir + "predictions_targets2.csv", 'w') as f:
         f.write(output_df.__repr__())
 
