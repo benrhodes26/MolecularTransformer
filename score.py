@@ -3,6 +3,7 @@
 
 from __future__ import division, unicode_literals
 import argparse
+import os
 from rdkit import Chem
 import pandas as pd
 from utils import ds2sm, sf2sm
@@ -24,6 +25,7 @@ def get_rank(row, base, max_rank):
 
 
 def main(opt):
+
     with open(opt.targets, 'r') as f:
         if opt.mol_format == "smiles":
             targets = [''.join(line.strip().split(' ')) for line in f.readlines()]
@@ -32,14 +34,11 @@ def main(opt):
         elif opt.mol_format == "selfies":
             targets = [canonicalize_smiles(sf2sm(line)) for line in f.readlines()]
 
-    predictions = [[] for i in range(opt.beam_size)]
+    predictions = [[] for _ in range(opt.beam_size)]
 
-    # todo: read through this method & understand it
-
-    test_df = pd.DataFrame(targets)
-    print(test_df.shape)
-    test_df.columns = ['target']
-    total = len(test_df)
+    output_df = pd.DataFrame(targets)
+    output_df.columns = ['target']
+    total = len(output_df)
 
     with open(opt.predictions, 'r') as f:
         # for non-smiles outputs, if conversion fails
@@ -63,28 +62,23 @@ def main(opt):
                     pred_smile = ""
                 predictions[i % opt.beam_size].append(pred_smile)
 
-    print(len(predictions))
     for i, preds in enumerate(predictions):
-        print(len(preds))
-        test_df['prediction_{}'.format(i + 1)] = preds
-        test_df['canonical_prediction_{}'.format(i + 1)] = test_df['prediction_{}'.format(i + 1)].apply(
-            lambda x: canonicalize_smiles(x))
+        output_df['prediction_{}'.format(i + 1)] = preds
+        output_df['canonical_prediction_{}'.format(i + 1)] = \
+            output_df['prediction_{}'.format(i + 1)].apply(lambda x: canonicalize_smiles(x))
 
-    test_df['rank'] = test_df.apply(lambda row: get_rank(row, 'canonical_prediction_', opt.beam_size), axis=1)
-
+    output_df['rank'] = output_df.apply(lambda row: get_rank(row, 'canonical_prediction_', opt.beam_size), axis=1)
     correct = 0
 
-    for i in range(1, opt.beam_size+1):
-        correct += (test_df['rank'] == i).sum()
-        invalid_smiles = (test_df['canonical_prediction_{}'.format(i)] == '').sum()
-        if opt.invalid_smiles:
-            print('Top-{}: {:.1f}% || Invalid SMILES {:.2f}%'.format(i, correct/total*100,
-                                                                     invalid_smiles/total*100))
-        else:
-            print('Top-{}: {:.1f}%'.format(i, correct / total * 100))
+    os.makedirs(opt.outdir, exist_ok=True)
 
-    # todo: save test_df to file
+    with open(opt.outdir + "invalid_smiles_percent.txt", 'a') as f:
+        for i in range(1, opt.beam_size+1):
+            correct += (output_df['rank'] == i).sum()
+            invalid_smiles = (output_df['canonical_prediction_{}'.format(i)] == '').sum()
+            f.write('Top-{}: {:.1f}% || Invalid SMILES {:.2f}%\n'.format(i, correct/total*100, invalid_smiles/total*100))
 
+    output_df.to_csv(opt.outdir + "predictions_targets.csv", sep='\t')
 
 
 if __name__ == "__main__":
@@ -102,6 +96,8 @@ if __name__ == "__main__":
                        help="Path to file containing targets")
     parser.add_argument('-mol_format', type=str, default="smiles",
                         help="smiles/deepsmiles or selfies")
+    parser.add_argument('-outdir', type=str, default="experiments/",
+                        help="output directory")
 
     opt = parser.parse_args()
     main(opt)
