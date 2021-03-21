@@ -58,7 +58,7 @@ def ds2sm(line):
     molecules = line.split(".")
     new_line = []
     for molecule in molecules:
-        new_molecule = converter.decode(molecule)  # todo: should return empty if invalid
+        new_molecule = converter.decode(molecule)
         new_line.append(new_molecule)
     new_line = ".".join(new_line)
     return new_line

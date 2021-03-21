@@ -34,6 +34,8 @@ def main(opt):
 
     predictions = [[] for i in range(opt.beam_size)]
 
+    # todo: read through this method & understand it
+
     test_df = pd.DataFrame(targets)
     print(test_df.shape)
     test_df.columns = ['target']
@@ -51,7 +53,7 @@ def main(opt):
                 try:
                     pred_smile = ds2sm(''.join(line.strip().split(' ')))
                 except:
-                    pred_smile=""
+                    pred_smile = ""
                 predictions[i % opt.beam_size].append(pred_smile)
         elif opt.mol_format == "selfies":
             for i, line in enumerate(f.readlines()):
@@ -80,6 +82,8 @@ def main(opt):
                                                                      invalid_smiles/total*100))
         else:
             print('Top-{}: {:.1f}%'.format(i, correct / total * 100))
+
+    # todo: save test_df to file
 
 
 
