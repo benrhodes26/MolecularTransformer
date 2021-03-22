@@ -26,13 +26,20 @@ def get_rank(row, base, max_rank):
 
 def main(opt):
 
+    strip_and_split = lambda x: ''.join(x.strip().split(' '))
     with open(opt.targets, 'r') as f:
+
         if opt.mol_format == "smiles":
-            targets = [''.join(line.strip().split(' ')) for line in f.readlines()]
+            targets = [strip_and_split(line) for line in f.readlines()]
+
         elif opt.mol_format == "deepsmiles":
-            targets = [canonicalize_smiles(ds2sm(''.join(line.strip().split(' ')))) for line in f.readlines()]
+            convert_func = lambda x: x if opt.no_canonicalize else lambda x: canonicalize_smiles(ds2sm(x))
+            targets = [convert_func(strip_and_split(line)) for line in f.readlines()]
+
         elif opt.mol_format == "selfies":
-            targets = [canonicalize_smiles(sf2sm(line)) for line in f.readlines()]
+            convert_func = lambda x: x if opt.no_canonicalize else lambda x: canonicalize_smiles(sf2sm(x))
+            # todo: why no stripping and splitting??
+            targets = [convert_func(line) for line in f.readlines()]
 
     predictions = [[] for _ in range(opt.beam_size)]
 
@@ -41,38 +48,48 @@ def main(opt):
     total = len(output_df)
 
     with open(opt.predictions, 'r') as f:
-        # for non-smiles outputs, if conversion fails
-        # ignore (just predict empty string)
+
+        # for non-smiles outputs, if conversion fails ignore (just predict empty string)
         if opt.mol_format == "smiles":
             for i, line in enumerate(f.readlines()):
                 pred_smile = ''.join(line.strip().split(' '))
                 predictions[i % opt.beam_size].append(pred_smile)
+
         elif opt.mol_format == "deepsmiles":
             for i, line in enumerate(f.readlines()):
                 try:
-                    pred_smile = ds2sm(''.join(line.strip().split(' ')))
+                    convert_func = lambda x: x if opt.no_canonicalize else lambda x: ds2sm(x)
+                    pred_smile = convert_func(strip_and_split(line))
                 except:
                     pred_smile = ""
                 predictions[i % opt.beam_size].append(pred_smile)
+
         elif opt.mol_format == "selfies":
             for i, line in enumerate(f.readlines()):
                 try:
-                    pred_smile = sf2sm(line)
+                    convert_func = lambda x: x if opt.no_canonicalize else lambda x: sf2sm(x)
+                    pred_smile = convert_func(line)  # todo: split & strip?
                 except:
                     pred_smile = ""
                 predictions[i % opt.beam_size].append(pred_smile)
 
     for i, preds in enumerate(predictions):
         output_df['prediction_{}'.format(i + 1)] = preds
-        output_df['canonical_prediction_{}'.format(i + 1)] = \
-            output_df['prediction_{}'.format(i + 1)].apply(lambda x: canonicalize_smiles(x))
+
+        if opt.no_canonicalize:
+            output_df['canonical_prediction_{}'.format(i + 1)] = output_df['prediction_{}'.format(i + 1)]  # do nothing
+        else:
+            output_df['canonical_prediction_{}'.format(i + 1)] = \
+                output_df['prediction_{}'.format(i + 1)].apply(lambda x: canonicalize_smiles(x))
 
     output_df['rank'] = output_df.apply(lambda row: get_rank(row, 'canonical_prediction_', opt.beam_size), axis=1)
     correct = 0
 
     os.makedirs(opt.outdir, exist_ok=True)
 
-    with open(opt.outdir + "invalid_smiles_percent.txt", 'a') as f:
+    fname = "invalid_smiles_percent.txt"
+    if opt.no_canonicalize: fname = "no_canonicalize_" + fname
+    with open(opt.outdir + fname, 'a') as f:
         for i in range(1, opt.beam_size+1):
             correct += (output_df['rank'] == i).sum()
             invalid_smiles = (output_df['canonical_prediction_{}'.format(i)] == '').sum()
@@ -81,10 +98,10 @@ def main(opt):
             f.write(result_str)
             print(result_str)
 
-    output_df.to_csv(opt.outdir + "predictions_targets.csv", sep='\t', encoding='ascii')
-    output_df.to_string(opt.outdir + "predictions_targets.txt")
-    with open(opt.outdir + "predictions_targets2.csv", 'w') as f:
-        f.write(output_df.__repr__())
+    fname = "predictions_targets"
+    if opt.no_canonicalize: fname = "no_canonicalize_" + fname
+    output_df.to_csv(opt.outdir + fname + ".csv")
+    output_df.to_string(opt.outdir + fname + ".txt")
 
 
 if __name__ == "__main__":
@@ -96,6 +113,8 @@ if __name__ == "__main__":
                        help='Beam size')
     parser.add_argument('-invalid_smiles', action="store_true",
                        help='Show % of invalid SMILES')
+    parser.add_argument('-no_canonicalize', action="store_true",
+                       help='Do not convert everything to canonicalized smiles format before computing accuracy')
     parser.add_argument('-predictions', type=str, default="",
                        help="Path to file containing the predictions")
     parser.add_argument('-targets', type=str, default="",
