@@ -33,12 +33,16 @@ def main(opt):
             targets = [strip_and_split(line) for line in f.readlines()]
 
         elif opt.mol_format == "deepsmiles":
-            convert_func = lambda x: x if opt.no_canonicalize else lambda x: canonicalize_smiles(ds2sm(x))
-            targets = [convert_func(strip_and_split(line)) for line in f.readlines()]
+            if opt.no_canonicalize:
+                targets = [strip_and_split(line) for line in f.readlines()]
+            else:
+                targets = [canonicalize_smiles(ds2sm(strip_and_split(line))) for line in f.readlines()]
 
         elif opt.mol_format == "selfies":
-            convert_func = lambda x: x if opt.no_canonicalize else lambda x: canonicalize_smiles(sf2sm(x))
-            targets = [convert_func(strip_and_split(line)) for line in f.readlines()]
+            if opt.no_canonicalize:
+                targets = [strip_and_split(line) for line in f.readlines()]
+            else:
+                targets = [canonicalize_smiles(sf2sm(strip_and_split(line))) for line in f.readlines()]
 
         else:
             raise ValueError("Unrecognised molecular format: {}. "
@@ -61,8 +65,10 @@ def main(opt):
         elif opt.mol_format == "deepsmiles":
             for i, line in enumerate(f.readlines()):
                 try:
-                    convert_func = lambda x: x if opt.no_canonicalize else lambda x: ds2sm(x)
-                    pred_smile = convert_func(strip_and_split(line))
+                    if opt.no_canonicalize:
+                        pred_smile = strip_and_split(line)
+                    else:
+                        pred_smile = sf2sm(strip_and_split(line))
                 except:
                     pred_smile = ""
                 predictions[i % opt.beam_size].append(pred_smile)
@@ -70,8 +76,10 @@ def main(opt):
         elif opt.mol_format == "selfies":
             for i, line in enumerate(f.readlines()):
                 try:
-                    convert_func = lambda x: x if opt.no_canonicalize else lambda x: sf2sm(x)
-                    pred_smile = convert_func(strip_and_split(line))
+                    if opt.no_canonicalize:
+                        pred_smile = strip_and_split(line)
+                    else:
+                        pred_smile = sf2sm(strip_and_split(line))
                 except:
                     pred_smile = ""
                 predictions[i % opt.beam_size].append(pred_smile)
@@ -118,11 +126,11 @@ if __name__ == "__main__":
                        help='Show % of invalid SMILES')
     parser.add_argument('-no_canonicalize', action="store_true",
                        help='Do not convert everything to canonicalized smiles format before computing accuracy')
-    parser.add_argument('-predictions', type=str, default="",
+    parser.add_argument('-predictions', type=str, default="/home/ben/MolecularTransformer/experiments/SF15K_L4N256_2/valid_20000.out",
                        help="Path to file containing the predictions")
-    parser.add_argument('-targets', type=str, default="",
+    parser.add_argument('-targets', type=str, default="/home/ben/MolecularTransformer/data/USPTO-15k/SF15K/SF_tgt_valid.txt",
                        help="Path to file containing targets")
-    parser.add_argument('-mol_format', type=str, default="smiles",
+    parser.add_argument('-mol_format', type=str, default="selfies",
                         help="smiles/deepsmiles or selfies")
     parser.add_argument('-outdir', type=str, default="experiments/",
                         help="output directory")
