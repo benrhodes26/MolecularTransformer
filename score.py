@@ -40,6 +40,10 @@ def main(opt):
             convert_func = lambda x: x if opt.no_canonicalize else lambda x: canonicalize_smiles(sf2sm(x))
             targets = [convert_func(strip_and_split(line)) for line in f.readlines()]
 
+        else:
+            raise ValueError("Unrecognised molecular format: {}. "
+                             "Expected 'smiles' or 'deepsmiles' or 'selfies'.".format(opt.mol_format))
+
     predictions = [[] for _ in range(opt.beam_size)]
 
     output_df = pd.DataFrame(targets)

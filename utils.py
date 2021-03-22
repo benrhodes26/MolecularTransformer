@@ -68,12 +68,22 @@ def sm2sf(line):
     pass
 
 
+# def sf2sm(line):
+#     words = line.strip().split(".")
+#     words = ["[" + word.replace(" ", "][") + "]" for word in words]
+#     new_line = []
+#     for word in words:
+#         new_line.append(sf.decoder(word))
+#     new_line = ".".join(new_line)
+#
+#     return new_line
+
 def sf2sm(line):
-    words = line.strip().split(".")
-    words = [ "[" + word.replace(" ", "][") + "]" for word in words ] 
+    line = line.replace(" ", "")
+    molecules = line.split(".")
     new_line = []
-    for word in words: 
-        new_line.append( sf.decoder(word))
+    for molecule in molecules:
+        new_molecule = sf.decoder(molecule)
+        new_line.append(new_molecule)
     new_line = ".".join(new_line)
     return new_line
-
