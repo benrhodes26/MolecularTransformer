@@ -38,8 +38,7 @@ def main(opt):
 
         elif opt.mol_format == "selfies":
             convert_func = lambda x: x if opt.no_canonicalize else lambda x: canonicalize_smiles(sf2sm(x))
-            # todo: why no stripping and splitting??
-            targets = [convert_func(line) for line in f.readlines()]
+            targets = [convert_func(strip_and_split(line)) for line in f.readlines()]
 
     predictions = [[] for _ in range(opt.beam_size)]
 
@@ -68,7 +67,7 @@ def main(opt):
             for i, line in enumerate(f.readlines()):
                 try:
                     convert_func = lambda x: x if opt.no_canonicalize else lambda x: sf2sm(x)
-                    pred_smile = convert_func(line)  # todo: split & strip?
+                    pred_smile = convert_func(strip_and_split(line))
                 except:
                     pred_smile = ""
                 predictions[i % opt.beam_size].append(pred_smile)
