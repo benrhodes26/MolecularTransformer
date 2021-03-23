@@ -68,7 +68,7 @@ def main(opt):
                     if opt.no_canonicalize:
                         pred_smile = strip_and_split(line)
                     else:
-                        pred_smile = sf2sm(strip_and_split(line))
+                        pred_smile = ds2sm(strip_and_split(line))
                 except:
                     pred_smile = ""
                 predictions[i % opt.beam_size].append(pred_smile)
